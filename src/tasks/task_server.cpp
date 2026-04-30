@@ -97,21 +97,16 @@ static void setupRoutes() {
 void taskWebServer(void *pvParameters) {
     (void)pvParameters;
     
+    // Ждем монтирование файловой системы
+    while (!isFileSystemReady()) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
     // Ждем подключения WiFi
     while (!isWiFiConnected()) {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
-    // Файловая система уже смонтирована в initFileSystem()
-    // Просто проверяем, что она доступна
-    if (!LittleFS.begin(false)) {  // false = не форматировать, просто проверить
-        Serial.println("[WEB] ОШИБКА! LittleFS не доступна.");
-        Serial.println("[WEB] Проверьте initFileSystem() в fs_manager.cpp");
-        while (true) {
-            vTaskDelay(pdMS_TO_TICKS(5000));
-        }
-    }
-    
     // Настройка маршрутов и запуск сервера
     setupRoutes();
     server.begin();

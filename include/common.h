@@ -5,16 +5,17 @@
 #include <Arduino.h>
 
 // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
-extern bool ledState;      // состояние светодиода (вкл/выкл)
-extern bool apMode;        // режим точки доступа (true=AP, false=клиент)
+extern bool ledState;       // состояние светодиода (вкл/выкл)
+extern bool apMode;         // режим точки доступа (true=AP, false=клиент)
 
 // ===== ОБЩИЕ ФУНКЦИИ =====
-void toggleLED();          // Переключает светодиод и обновляет ledState
+void toggleLED();           // Переключает светодиод и обновляет ledState
 
 // ===== ЗАПУСК ФАЙЛОВОЙ СИСТЕМЫ =====
-void initFileSystem();     //
+void initFileSystem();      // Инициализация и монтирование LittleFS
+bool isFileSystemReady();   // Возвращает true, если FS смонтирована
 
 // ===== СТАТУС ПОДКЛЮЧЕНИЯ WIFI =====
-bool isWiFiConnected();    //
+bool isWiFiConnected();     // Возвращает true, если WiFi подключен
 
 #endif

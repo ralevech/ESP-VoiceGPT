@@ -5,6 +5,7 @@
 // Автор: ralevech
 // ====================================================================
 
+#include <Arduino.h>
 #include <LittleFS.h>
 #include "config.h"
 #include "common.h"
@@ -17,15 +18,21 @@
 //   2. При ошибке - вывод сообщения об ошибке
 //   3. При успехе - вывод информации о размере
 // ====================================================================
+
+static bool fileSystemReady = false;
+
 void initFileSystem() {
     Serial.println("[FS] Монтирование LittleFS...");
     
     // Монтируем файловую систему (true = форматировать при ошибке)
     if (!LittleFS.begin(true)) {
+        fileSystemReady = false;
         Serial.println("[FS] ОШИБКА! Не удалось смонтировать LittleFS");
         return;
     }
-    
+
+    fileSystemReady = true;
+
     Serial.println("[FS] LittleFS успешно смонтирована");
     
     // Получение информации о файловой системе (альтернативный способ)
@@ -104,4 +111,9 @@ void listDirectory(const char* path, int depth) {
         file = root.openNextFile();
     }
     file.close();
+}
+
+// Возвращает состояние монтирования файловой системы
+bool isFileSystemReady() {
+    return fileSystemReady;
 }
