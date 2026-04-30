@@ -1,0 +1,145 @@
+/*
+  ====================================================================
+  style.css - Стили для веб-интерфейса ESP32
+  ====================================================================
+  Описание: Цветовая схема, анимации и адаптивный дизайн
+  Автор: ralevech
+  ====================================================================
+*/
+
+/* ----- ОСНОВНЫЕ СТИЛИ ----- */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f0f0f0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+}
+
+/* ----- КНОПКИ ----- */
+
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    min-width: 150px;
+}
+
+/* Стиль для кнопки LED */
+.btn-led {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-led:hover {
+    background-color: #45a049;
+}
+
+/* Включенное состояние кнопки LED */
+.btn-led.on {
+    background-color: #f44336;
+}
+
+.btn-led.on:hover {
+    background-color: #d32f2f;
+}
+
+/* Кнопка статуса */
+.btn-status {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-status:hover {
+    background-color: #0b7dda;
+}
+
+/* Анимация нажатия */
+button:active {
+    transform: scale(0.95);
+}
+
+/* Состояние загрузки */
+button.loading {
+    background-color: #ff9800 !important;
+    opacity: 0.8;
+    cursor: wait;
+}
+
+/* Заблокированная кнопка */
+button:disabled {
+    cursor: not-allowed;
+}
+
+/* ----- ИНДИКАЦИЯ СОСТОЯНИЯ ----- */
+
+.led-state {
+    margin-top: 15px;
+    padding: 8px;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+}
+
+.status {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #e7f3ff;
+    border-radius: 5px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+/* Анимация обновления статуса */
+.status-update {
+    transform: scale(1.01);
+}
+
+/* Успешный статус */
+.status-success {
+    background-color: #c8e6c9;
+}
+
+/* Статус ошибки */
+.status-error {
+    background-color: #ffcdd2;
+}
+
+/* ----- АДАПТИВНЫЙ ДИЗАЙН ----- */
+
+@media (max-width: 600px) {
+    .container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    button {
+        min-width: 120px;
+        padding: 8px 16px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+}
+
+.button-group {
+    text-align: center;
+}
