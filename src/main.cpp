@@ -17,7 +17,16 @@ void setup() {
     initFileSystem();
     
     // Запуск задач
-    xTaskCreatePinnedToCore(taskWiFi, "WiFiCheck", STACK_WIFI, NULL, PRIO_WIFI, NULL, CORE_WIFI);
+    xTaskCreatePinnedToCore(
+        taskWiFi,           // функция задачи
+        "WiFi Task",        // имя задачи
+        STACK_WIFI,         // размер стека (из config.h)
+        NULL,               // параметры
+        PRIO_WIFI,          // приоритет (5 - высокий)
+        NULL,               // хэндл
+        CORE_WIFI           // ядро 0
+    );
+
     xTaskCreatePinnedToCore(taskBlink, "Blink", STACK_BLINK, NULL, PRIO_BLINK, NULL, CORE_BLINK);
     xTaskCreatePinnedToCore(taskSerial, "SerialPrint", STACK_SERIAL, NULL, PRIO_SERIAL, NULL, CORE_SERIAL);
     xTaskCreatePinnedToCore(taskWebServer, "WebServer", STACK_SERVER, NULL, PRIO_SERVER, NULL, CORE_SERVER);
