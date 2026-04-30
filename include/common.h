@@ -12,6 +12,9 @@ extern bool apMode;        // режим точки доступа (true=AP, fal
 void toggleLED();          // Переключает светодиод и обновляет ledState
 
 // ===== ЗАПУСК ФАЙЛОВОЙ СИСТЕМЫ =====
-void initFileSystem();
+void initFileSystem();     //
+
+// ===== СТАТУС ПОДКЛЮЧЕНИЯ WIFI =====
+bool isWiFiConnected();    //
 
 #endif

@@ -98,23 +98,10 @@ void taskWebServer(void *pvParameters) {
     (void)pvParameters;
     
     // Ждем подключения WiFi
-    Serial.println("[WEB] Ожидание WiFi...");
-    
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+    while (!isWiFiConnected()) {
         vTaskDelay(pdMS_TO_TICKS(1000));
-        attempts++;
-        Serial.print(".");
     }
-    
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println();
-        Serial.println("[WEB] ВНИМАНИЕ! WiFi не подключен.");
-    } else {
-        Serial.println();
-        Serial.println("[WEB] WiFi подключен!");
-    }
-    
+
     // Файловая система уже смонтирована в initFileSystem()
     // Просто проверяем, что она доступна
     if (!LittleFS.begin(false)) {  // false = не форматировать, просто проверить
