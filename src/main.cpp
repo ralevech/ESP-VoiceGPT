@@ -28,38 +28,3 @@ void loop() {
     delay(10000);
     vTaskDelete(NULL);
 }
-
-
-
-//  ===== БЫСТРЫ ТЕСТ РАБОТОСПОСОБНОСТИ ЧИПА =====
-// Подключаем библиотеку для управления адресными светодиодами
-// #include <Adafruit_NeoPixel.h>
-
-// // Указываем пин, к которому подключен светодиод
-// #define LED_PIN    48
-// // Указываем, что у нас 1 светодиод
-// #define LED_COUNT  1
-
-// // Создаем объект для управления светодиодом
-// Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-
-// void setup() {
-//   Serial.begin(115200);
-//   pixels.begin(); // Инициализируем светодиод
-//   Serial.println("Setup готов. Начинаем мигать!");
-// }
-
-// void loop() {
-//   // Включаем зеленый свет
-//   pixels.setPixelColor(0, pixels.Color(0, 150, 0)); 
-//   pixels.show();
-//   Serial.println("LED ON");
-//   delay(500);
-
-//   // Выключаем свет
-//   pixels.clear(); 
-//   pixels.show();
-//   Serial.println("LED OFF");
-//   Serial.println("Running...");
-//   delay(500);
-// }
