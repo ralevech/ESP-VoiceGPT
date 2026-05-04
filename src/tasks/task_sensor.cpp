@@ -1,10 +1,39 @@
-// чтение датчиков
+// ====================================================================
+// task_sensor.cpp - Задача опроса датчиков
+// 
+// Описание: Заглушка для будущих датчиков. При необходимости
+//           раскомментировать код для конкретных датчиков.
+// Автор: ralevech
+// ====================================================================
+
 #include <Arduino.h>
 #include "config.h"
+#include "common.h"
 
+// ====================================================================
+// taskSensor() - Задача опроса датчиков
+// 
+// Алгоритм:
+//   1. Вывод сообщения о запуске
+//   2. Бесконечный цикл с периодическим опросом
+//   3. Сброс watchdog при каждой итерации
+// ====================================================================
 void taskSensor(void *pvParameters) {
-    while(1) {
-        Serial.println("taskSensor - OK");
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+    (void)pvParameters;
+    
+    Serial.println("[SENSOR] Задача запущена (заглушка для будущих датчиков)");
+    
+    while(true) {
+        // TODO: Здесь будет опрос датчиков
+        // Примеры:
+        // float temperature = readTemperature();
+        // float humidity = readHumidity();
+        // int distance = readUltrasonic();
+        
+        // Если датчиков нет - просто ждём
+        vTaskDelay(pdMS_TO_TICKS(DELAY_SENSOR_CHECK));
+        
+        // Сброс watchdog (задача жива)
+        feedWatchdog();
     }
 }

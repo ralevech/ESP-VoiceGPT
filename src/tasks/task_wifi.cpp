@@ -2,7 +2,8 @@
 // task_wifi.cpp - Задача управления WiFi подключением
 // 
 // Описание: Обеспечивает стабильное подключение к WiFi сети с
-//           автоматическим переподключением при обрыве связи
+//           автоматическим переподключением при обрыве связи.
+//           Если подключение не удалось - запускает режим точки доступа (AP)
 // Автор: ralevech
 // ====================================================================
 
@@ -16,20 +17,26 @@
 // --------------------------------------------------------------------
 static unsigned long lastReconnectAttempt = 0;
 static bool wifiConnected = false;
+static bool apModeActive = false;  // Флаг активного AP режима
 
 // --------------------------------------------------------------------
 // Прототипы внутренних функций
 // --------------------------------------------------------------------
 static bool connectToWiFi();
 static void checkWiFiConnection();
+static void startAPmode();
+static void stopAPmode();
 
 // ====================================================================
 // taskWiFi() - Основная задача управления WiFi
 // 
 // Алгоритм:
 //   1. При старте - подключается к WiFi
-//   2. В цикле - проверяет состояние подключения
-//   3. При обрыве связи - переподключается автоматически
+//   2. Если не получилось - запускает AP mode
+//   3. В цикле - проверяет состояние подключения
+//   4. При обрыве связи - пытается переподключиться
+//   5. Если переподключение не удалось - включает AP mode
+//   6. Периодический сброс watchdog
 // ====================================================================
 void taskWiFi(void *pvParameters) {
     (void)pvParameters;
@@ -37,19 +44,21 @@ void taskWiFi(void *pvParameters) {
     // Задержка при старте (дает время инициализации Serial)
     vTaskDelay(pdMS_TO_TICKS(500));
     
-    Serial.println();
-    Serial.println("[WiFi] Задача запущена");
-    
     // Первичное подключение к WiFi
-    connectToWiFi();
+    if (!connectToWiFi()) {
+        // Если подключение не удалось, запускаем AP режим
+        startAPmode();
+    }
     
     // Основной цикл задачи
     while(true) {
         // Проверяем состояние WiFi подключения
         checkWiFiConnection();
-        
         // Задержка перед следующей проверкой
         vTaskDelay(pdMS_TO_TICKS(DELAY_WIFI_CHECK));
+        
+        // Сброс watchdog (задача жива)
+        feedWatchdog();
     }
 }
 
@@ -59,9 +68,10 @@ void taskWiFi(void *pvParameters) {
 // Возвращает: true - подключение успешно, false - ошибка
 // ====================================================================
 static bool connectToWiFi() {
-    Serial.print("[WiFi] Подключение к ");
-    Serial.print(WIFI_SSID);
-    Serial.print("...");
+    // Если AP режим активен - сначала его выключаем
+    if (apModeActive) {
+        stopAPmode();
+    }
     
     // Отключаемся от предыдущей сети (если была)
     WiFi.disconnect(true);
@@ -69,6 +79,9 @@ static bool connectToWiFi() {
     
     // Настраиваем WiFi в режим станции (клиента)
     WiFi.mode(WIFI_STA);
+    
+    Serial.print("[WiFi] Подключение к ");
+    Serial.println(WIFI_SSID);
     
     // Начинаем подключение
     WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -80,97 +93,111 @@ static bool connectToWiFi() {
         attempts++;
         Serial.print(".");
     }
+    Serial.println();
     
     // Проверяем результат
     if (WiFi.status() == WL_CONNECTED) {
         wifiConnected = true;
-        Serial.println();
-        Serial.println("[WiFi] ПОДКЛЮЧЕН!");
+        apModeActive = false;
+        apMode = false;  // глобальный флаг из common.h
+        Serial.println("[WiFi] Подключено успешно!");
         Serial.print("[WiFi] IP адрес: ");
         Serial.println(WiFi.localIP());
-        Serial.print("[WiFi] MAC адрес: ");
-        Serial.println(WiFi.macAddress());
-        Serial.print("[WiFi] Канал: ");
-        Serial.println(WiFi.channel());
-        Serial.print("[WiFi] Уровень сигнала: ");
-        Serial.print(WiFi.RSSI());
-        Serial.println(" dBm");
         return true;
     } else {
         wifiConnected = false;
-        Serial.println();
-        Serial.println("[WiFi] ОШИБКА ПОДКЛЮЧЕНИЯ!");
-        Serial.println("[WiFi] Проверьте SSID и пароль");
+        Serial.println("[WiFi] Не удалось подключиться!");
         return false;
     }
 }
 
 // ====================================================================
+// startAPmode() - Запуск режима точки доступа
+// 
+// Алгоритм:
+//   1. Настраивает WiFi в режим точки доступа
+//   2. Устанавливает SSID и пароль из config.h
+//   3. Выводит информацию об AP в Serial
+// ====================================================================
+static void startAPmode() {
+    Serial.println("[WiFi] Запуск режима точки доступа (AP)...");
+    
+    // Отключаем STA режим
+    WiFi.mode(WIFI_AP);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    
+    // Запускаем точку доступа
+    bool result = WiFi.softAP(AP_SSID, AP_PASS);
+    
+    if (result) {
+        apModeActive = true;
+        apMode = true;  // глобальный флаг из common.h
+        Serial.println("[WiFi] Точка доступа запущена!");
+        Serial.print("[WiFi] AP SSID: ");
+        Serial.println(AP_SSID);
+        Serial.print("[WiFi] AP пароль: ");
+        Serial.println(AP_PASS);
+        Serial.print("[WiFi] AP IP адрес: ");
+        Serial.println(WiFi.softAPIP());
+    } else {
+        Serial.println("[WiFi] ОШИБКА: Не удалось запустить точку доступа!");
+    }
+}
+
+// ====================================================================
+// stopAPmode() - Остановка режима точки доступа
+// ====================================================================
+static void stopAPmode() {
+    Serial.println("[WiFi] Остановка режима точки доступа...");
+    WiFi.softAPdisconnect(true);
+    apModeActive = false;
+    apMode = false;  // глобальный флаг из common.h
+    vTaskDelay(pdMS_TO_TICKS(500));
+}
+
+// ====================================================================
 // checkWiFiConnection() - Проверка состояния WiFi и переподключение
 // 
-// Если соединение потеряно - пытается восстановить
+// Если соединение потеряно - пытается восстановить.
+// Если восстановление не удалось - включает AP режим.
+// Если AP режим активен - пробует периодически подключиться к WiFi
 // ====================================================================
 static void checkWiFiConnection() {
-    // Проверяем текущее состояние подключения
-    if (WiFi.status() == WL_CONNECTED) {
-        // Если все хорошо, но флаг сброшен - обновляем
-        if (!wifiConnected) {
-            wifiConnected = true;
-            Serial.println("[WiFi] Связь восстановлена!");
-            Serial.print("[WiFi] IP адрес: ");
-            Serial.println(WiFi.localIP());
+    // Если AP режим активен - пробуем периодически подключиться к WiFi
+    if (apModeActive) {
+        unsigned long currentTime = millis();
+        if (currentTime - lastReconnectAttempt > 30000) {  // Каждые 30 секунд
+            lastReconnectAttempt = currentTime;
+            Serial.println("[WiFi] AP режим: пробую подключиться к WiFi...");
+            
+            if (connectToWiFi()) {
+                // Успешно подключились к WiFi, выключаем AP режим
+                Serial.println("[WiFi] Подключено к WiFi, выключаю AP режим");
+            }
         }
         return;
     }
     
-    // Соединение потеряно
-    if (wifiConnected) {
-        // Только что потеряли соединение
-        wifiConnected = false;
-        Serial.println();
-        Serial.println("[WiFi] СВЯЗЬ ПОТЕРЯНА!");
-        Serial.println("[WiFi] Попытка переподключения...");
-    } else {
-        // Уже были в состоянии потери связи
-        static unsigned long lastLog = 0;
-        if (millis() - lastLog > 30000) {  // Логируем раз в 30 секунд
-            lastLog = millis();
-            Serial.println("[WiFi] Ожидание восстановления связи...");
-        }
-    }
-    
-    // Пытаемся переподключиться
-    // Ограничиваем частоту попыток (не чаще раза в 5 секунд)
-    unsigned long currentTime = millis();
-    if (currentTime - lastReconnectAttempt > 5000) {
-        lastReconnectAttempt = currentTime;
+    // Если WiFi отключился - пробуем переподключиться
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("[WiFi] Соединение потеряно! Пробую переподключиться...");
         
-        Serial.print("[WiFi] Переподключение к ");
-        Serial.print(WIFI_SSID);
-        Serial.println("...");
-        
-        // Отключаемся и пробуем заново
-        WiFi.disconnect();
-        vTaskDelay(pdMS_TO_TICKS(100));
-        WiFi.begin(WIFI_SSID, WIFI_PASS);
-        
-        // Короткая задержка для проверки
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        
-        if (WiFi.status() == WL_CONNECTED) {
-            wifiConnected = true;
-            Serial.println(" ПОДКЛЮЧЕНО!");
-            Serial.print("[WiFi] Новый IP адрес: ");
-            Serial.println(WiFi.localIP());
-        } else {
-            Serial.println("подключение к сети wifi не удалось");
-            Serial.println(" ");
+        unsigned long currentTime = millis();
+        if (currentTime - lastReconnectAttempt > 5000) {  // Не чаще раза в 5 секунд
+            lastReconnectAttempt = currentTime;
+            
+            if (connectToWiFi()) {
+                Serial.println("[WiFi] Переподключение успешно!");
+            } else {
+                Serial.println("[WiFi] Не удалось переподключиться, включаю AP режим");
+                startAPmode();
+            }
         }
     }
 }
 
 // ====================================================================
-// Дополнительные функции для внешнего использования
+// Публичные функции для внешнего использования
 // ====================================================================
 
 // Возвращает состояние WiFi подключения
@@ -178,18 +205,7 @@ bool isWiFiConnected() {
     return (WiFi.status() == WL_CONNECTED);
 }
 
-// Возвращает уровень сигнала RSSI (если подключен)
-int getWiFiRSSI() {
-    if (WiFi.status() == WL_CONNECTED) {
-        return WiFi.RSSI();
-    }
-    return -999;
-}
-
-// Принудительное переподключение
-void reconnectWiFi() {
-    Serial.println("[WiFi] Принудительное переподключение...");
-    WiFi.disconnect(true);
-    vTaskDelay(pdMS_TO_TICKS(500));
-    connectToWiFi();
+// Возвращает активен ли AP режим
+bool isAPMode() {
+    return apModeActive;
 }
