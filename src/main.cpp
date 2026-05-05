@@ -28,19 +28,19 @@ void setup() {
     initFileSystem();
     
     // ===== ИНИЦИАЛИЗАЦИЯ WATCHDOG (старый API для совместимости) =====
-#if ENABLE_WATCHDOG
-    Serial.print("[WDT] Инициализация сторожевого таймера (");
-    Serial.print(WATCHDOG_TIMEOUT_MS);
-    Serial.println(" мс)");
-    
-    // Инициализация watchdog с таймаутом
-    esp_task_wdt_init(WATCHDOG_TIMEOUT_MS, true);
-    
-    // Добавляем текущую задачу в watchdog
-    esp_task_wdt_add(NULL);
-    
-    Serial.println("[WDT] Сторожевой таймер активирован");
-#endif
+    #if ENABLE_WATCHDOG
+        Serial.print("[WDT] Инициализация сторожевого таймера (");
+        Serial.print(WATCHDOG_TIMEOUT_MS);
+        Serial.println(" мс)");
+        
+        // Инициализация watchdog с таймаутом
+        esp_task_wdt_init(WATCHDOG_TIMEOUT_MS, true);
+        
+        // Добавляем текущую задачу в watchdog
+        esp_task_wdt_add(NULL);
+        
+        Serial.println("[WDT] Сторожевой таймер активирован");
+    #endif
     
     // ===== ЗАПУСК FreeRTOS ЗАДАЧ =====
     
@@ -104,9 +104,9 @@ void setup() {
 // loop() - Пустой цикл Arduino
 // ====================================================================
 void loop() {
-#if ENABLE_WATCHDOG
-    feedWatchdog();
-#endif
+    #if ENABLE_WATCHDOG
+        feedWatchdog();
+    #endif
     
     delay(10000);
     vTaskDelete(NULL);

@@ -5,6 +5,10 @@
 //           автоматическим переподключением при обрыве связи.
 //           Если подключение не удалось - запускает режим точки доступа (AP)
 // Автор: ralevech
+// 
+// ИЗМЕНЕНИЯ:
+// 1. Удалена дублирующая статическая переменная apModeActive
+// 2. Используется глобальная переменная apMode из common.h как единый источник
 // ====================================================================
 
 #include <Arduino.h>
@@ -17,7 +21,6 @@
 // --------------------------------------------------------------------
 static unsigned long lastReconnectAttempt = 0;
 static bool wifiConnected = false;
-static bool apModeActive = false;  // Флаг активного AP режима
 
 // --------------------------------------------------------------------
 // Прототипы внутренних функций
@@ -29,14 +32,6 @@ static void stopAPmode();
 
 // ====================================================================
 // taskWiFi() - Основная задача управления WiFi
-// 
-// Алгоритм:
-//   1. При старте - подключается к WiFi
-//   2. Если не получилось - запускает AP mode
-//   3. В цикле - проверяет состояние подключения
-//   4. При обрыве связи - пытается переподключиться
-//   5. Если переподключение не удалось - включает AP mode
-//   6. Периодический сброс watchdog
 // ====================================================================
 void taskWiFi(void *pvParameters) {
     (void)pvParameters;
@@ -69,7 +64,7 @@ void taskWiFi(void *pvParameters) {
 // ====================================================================
 static bool connectToWiFi() {
     // Если AP режим активен - сначала его выключаем
-    if (apModeActive) {
+    if (apMode) {
         stopAPmode();
     }
     
@@ -98,7 +93,6 @@ static bool connectToWiFi() {
     // Проверяем результат
     if (WiFi.status() == WL_CONNECTED) {
         wifiConnected = true;
-        apModeActive = false;
         apMode = false;  // глобальный флаг из common.h
         Serial.println("[WiFi] Подключено успешно!");
         Serial.print("[WiFi] IP адрес: ");
@@ -113,11 +107,6 @@ static bool connectToWiFi() {
 
 // ====================================================================
 // startAPmode() - Запуск режима точки доступа
-// 
-// Алгоритм:
-//   1. Настраивает WiFi в режим точки доступа
-//   2. Устанавливает SSID и пароль из config.h
-//   3. Выводит информацию об AP в Serial
 // ====================================================================
 static void startAPmode() {
     Serial.println("[WiFi] Запуск режима точки доступа (AP)...");
@@ -130,7 +119,6 @@ static void startAPmode() {
     bool result = WiFi.softAP(AP_SSID, AP_PASS);
     
     if (result) {
-        apModeActive = true;
         apMode = true;  // глобальный флаг из common.h
         Serial.println("[WiFi] Точка доступа запущена!");
         Serial.print("[WiFi] AP SSID: ");
@@ -150,21 +138,16 @@ static void startAPmode() {
 static void stopAPmode() {
     Serial.println("[WiFi] Остановка режима точки доступа...");
     WiFi.softAPdisconnect(true);
-    apModeActive = false;
     apMode = false;  // глобальный флаг из common.h
     vTaskDelay(pdMS_TO_TICKS(500));
 }
 
 // ====================================================================
 // checkWiFiConnection() - Проверка состояния WiFi и переподключение
-// 
-// Если соединение потеряно - пытается восстановить.
-// Если восстановление не удалось - включает AP режим.
-// Если AP режим активен - пробует периодически подключиться к WiFi
 // ====================================================================
 static void checkWiFiConnection() {
     // Если AP режим активен - пробуем периодически подключиться к WiFi
-    if (apModeActive) {
+    if (apMode) {
         unsigned long currentTime = millis();
         if (currentTime - lastReconnectAttempt > 30000) {  // Каждые 30 секунд
             lastReconnectAttempt = currentTime;
@@ -207,5 +190,5 @@ bool isWiFiConnected() {
 
 // Возвращает активен ли AP режим
 bool isAPMode() {
-    return apModeActive;
+    return apMode;
 }
