@@ -1,8 +1,8 @@
 // ====================================================================
 // main.cpp - Главный файл проекта ESP32-Skeleton
 // 
-// Описание: Точка входа в программу. Инициализация системы и запуск
-//           всех FreeRTOS задач.
+// Описание: Точка входа в программу. Инициализация системы,
+//           настройка Watchdog и запуск всех FreeRTOS задач.
 // Автор: ralevech
 // ====================================================================
 
@@ -13,100 +13,62 @@
 #include "tasks.h"
 
 // ====================================================================
-// setup() - Инициализация системы
+// setup() - Инициализация системы (выполняется один раз при старте)
 // ====================================================================
 void setup() {
-    // Инициализация Serial порта
+    // 1. Инициализация Serial для отладки
     Serial.begin(115200);
     delay(1000);
     
-    // Настройка встроенного светодиода (обычный, не RGB)
+    // 2. Настройка встроенного светодиода
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
     
-    // Инициализация файловой системы
+    // 3. Инициализация файловой системы LittleFS
     initFileSystem();
     
-    // ===== ИНИЦИАЛИЗАЦИЯ WATCHDOG (старый API для совместимости) =====
-    #if ENABLE_WATCHDOG
-        Serial.print("[WDT] Инициализация сторожевого таймера (");
-        Serial.print(WATCHDOG_TIMEOUT_MS);
-        Serial.println(" мс)");
-        
-        // Инициализация watchdog с таймаутом
-        esp_task_wdt_init(WATCHDOG_TIMEOUT_MS, true);
-        
-        // Добавляем текущую задачу в watchdog
-        esp_task_wdt_add(NULL);
-        
-        Serial.println("[WDT] Сторожевой таймер активирован");
-    #endif
+    // 4. Настройка Watchdog (если включён в config.h)
+#if ENABLE_WATCHDOG
+    Serial.print("[WDT] Инициализация сторожевого таймера (");
+    Serial.print(WATCHDOG_TIMEOUT_MS);
+    Serial.println(" мс)");
     
-    // ===== ЗАПУСК FreeRTOS ЗАДАЧ =====
+    esp_task_wdt_init(WATCHDOG_TIMEOUT_MS, true);
+    esp_task_wdt_add(NULL);
+    Serial.println("[WDT] Сторожевой таймер активирован");
+#endif
     
-    // Задача управления WiFi (подключение к сети или AP режим)
-    xTaskCreatePinnedToCore(
-        taskWiFi,           // функция задачи
-        "WiFi Task",        // имя задачи
-        STACK_WIFI,         // размер стека
-        NULL,               // параметры
-        PRIO_WIFI,          // приоритет
-        NULL,               // хэндл
-        CORE_WIFI           // ядро
-    );
-
-    // Задача управления RGB светодиодом
-    xTaskCreatePinnedToCore(
-        taskBlink,
-        "Blink Task",
-        STACK_BLINK,
-        NULL,
-        PRIO_BLINK,
-        NULL,
-        CORE_BLINK
-    );
-
-    // Задача вывода отладочной информации
-    xTaskCreatePinnedToCore(
-        taskSerial,
-        "Serial Task",
-        STACK_SERIAL,
-        NULL,
-        PRIO_SERIAL,
-        NULL,
-        CORE_SERIAL
-    );
-
-    // Задача веб-сервера
-    xTaskCreatePinnedToCore(
-        taskWebServer,
-        "WebServer Task",
-        STACK_SERVER,
-        NULL,
-        PRIO_SERVER,
-        NULL,
-        CORE_SERVER
-    );
-
-    // Задача опроса датчиков
-    xTaskCreatePinnedToCore(
-        taskSensor,
-        "Sensor Task",
-        STACK_SENSOR,
-        NULL,
-        PRIO_SENSOR,
-        NULL,
-        CORE_SENSOR
-    );
+    // 5. Запуск всех FreeRTOS задач
+    //    Каждая задача привязана к определённому ядру и имеет свой приоритет
+    
+    // WiFi задача (ядро 0, высший приоритет)
+    xTaskCreatePinnedToCore(taskWiFi, "WiFi Task", STACK_WIFI, NULL, PRIO_WIFI, NULL, CORE_WIFI);
+    
+    // RGB LED задача (ядро 1, высокий приоритет)
+    xTaskCreatePinnedToCore(taskBlink, "Blink Task", STACK_BLINK, NULL, PRIO_BLINK, NULL, CORE_BLINK);
+    
+    // Serial отладка (ядро 0, средний приоритет)
+    xTaskCreatePinnedToCore(taskSerial, "Serial Task", STACK_SERIAL, NULL, PRIO_SERIAL, NULL, CORE_SERIAL);
+    
+    // Веб-сервер (ядро 0, средний приоритет)
+    xTaskCreatePinnedToCore(taskWebServer, "WebServer Task", STACK_SERVER, NULL, PRIO_SERVER, NULL, CORE_SERVER);
+    
+    // Датчики (ядро 1, низкий приоритет)
+    xTaskCreatePinnedToCore(taskSensor, "Sensor Task", STACK_SENSOR, NULL, PRIO_SENSOR, NULL, CORE_SENSOR);
+    
+    // Аудио задача (ядро 1, низкий приоритет, опционально)
+#if ENABLE_AUDIO
+    xTaskCreatePinnedToCore(taskAudio, "Audio Task", STACK_AUDIO, NULL, PRIO_AUDIO, NULL, CORE_AUDIO);
+#endif
 }
 
 // ====================================================================
 // loop() - Пустой цикл Arduino
+// 
+// Примечание: Все задачи работают через FreeRTOS, поэтому loop() не нужен.
+//            Удаляем эту задачу сразу после запуска.
 // ====================================================================
 void loop() {
-    #if ENABLE_WATCHDOG
-        feedWatchdog();
-    #endif
-
+    // Удаляем задачу loop(), так как она не нужна
     vTaskDelete(NULL);
 }

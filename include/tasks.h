@@ -1,20 +1,56 @@
 // ====================================================================
-// tasks.h - Объявления всех задач FreeRTOS
+// tasks.h - Объявления всех задач FreeRTOS и публичных функций
+// 
+// Описание: Здесь объявляются все задачи, которые работают в проекте,
+//           а также публичные функции для межзадачного взаимодействия.
 // Автор: ralevech
 // ====================================================================
 
 #ifndef TASKS_H
 #define TASKS_H
 
-// Объявления всех задач
-void taskWiFi(void *pvParameters);
-void taskBlink(void *pvParameters);
-void taskSerial(void *pvParameters);
-void taskWebServer(void *pvParameters);
-void taskSensor(void *pvParameters);
+#include <Arduino.h>     // Необходим для типа String
 
-// Будущие задачи
-// void taskReadSensor(void *pvParameters);
-// void taskMQTT(void *pvParameters);
+// ====================================================================
+// 1. ОСНОВНЫЕ ЗАДАЧИ (всегда активны, создаются в main.cpp)
+// ====================================================================
 
+void taskWiFi(void *pvParameters);      // Управление WiFi (подключение, AP режим)
+void taskBlink(void *pvParameters);     // RGB LED (эффект радуги)
+void taskSerial(void *pvParameters);    // Вывод статуса системы в Serial
+void taskWebServer(void *pvParameters); // Веб-сервер (HTTP API)
+void taskSensor(void *pvParameters);    // Заглушка для будущих датчиков
+
+// ====================================================================
+// 2. ОПЦИОНАЛЬНЫЕ ЗАДАЧИ (включаются через флаги в config.h)
+// ====================================================================
+
+#if ENABLE_AUDIO
+    void taskAudio(void *pvParameters); // Воспроизведение звука через MAX98357A
 #endif
+
+// ====================================================================
+// 3. ПУБЛИЧНЫЕ ФУНКЦИИ ДЛЯ ВЫЗОВА ИЗ ДРУГИХ ЗАДАЧ
+// ====================================================================
+
+#if ENABLE_AUDIO
+    bool playMP3(String filename);      // Воспроизвести MP3 из LittleFS
+    void speak(String text);            // Синтезировать речь (Text-to-Speech)
+    void playRadio(String url);         // Включить интернет-радио
+    void stopAudio();                   // Остановить воспроизведение
+    void setAudioVolume(int volume);    // Установить громкость (0-21)
+#endif
+
+// ====================================================================
+// 4. БУДУЩИЕ ЗАДАЧИ (закомментированы до добавления функционала)
+// ====================================================================
+
+// #if ENABLE_MQTT
+//     void taskMQTT(void *pvParameters);
+// #endif
+
+// #if ENABLE_MODBUS
+//     void taskModbus(void *pvParameters);
+// #endif
+
+#endif // TASKS_H
