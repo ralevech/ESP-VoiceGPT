@@ -15,6 +15,7 @@
 //   GPIO4    -> DIN   (AUDIO_DOUT_PIN)
 //   GPIO5    -> BCLK  (AUDIO_BCLK_PIN)
 //   GPIO6    -> LRCK  (AUDIO_LRC_PIN)
+// ====================================================================
 
 #include <Arduino.h>
 #include <esp_task_wdt.h>
@@ -48,8 +49,9 @@ static void initAudio() {
     // Принудительный моно режим (для одного динамика)
     audio.forceMono(true);
     
+    // Сигнал об успешной инициализации
     Serial.println("[AUDIO] MAX98357A инициализирован");
-
+    
     audioReady = true;
 }
 
@@ -165,7 +167,7 @@ void audio_eof_stream(const char* info) {
 void taskAudio(void *pvParameters) {
     (void)pvParameters;
     
-    Serial.println("[AUDIO] Задача запущена");  // <-- ЭТО САМОЕ ВАЖНОЕ
+    Serial.println("[AUDIO] Задача запущена");
     
     esp_task_wdt_add(NULL);
     
@@ -179,6 +181,11 @@ void taskAudio(void *pvParameters) {
     
     initAudio();
     
+    // Тестовый вызов MP3
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    Serial.println("[TEST] Воспроизведение MP3");
+    playMP3("ksyusha.mp3");
+    
     Serial.println("[AUDIO] Готов к работе");
     
     while (true) {
@@ -186,30 +193,6 @@ void taskAudio(void *pvParameters) {
         audio.loop();
         vTaskDelay(pdMS_TO_TICKS(10));
     }
-
-
-
-
-    // // Регистрация в Watchdog
-    // esp_task_wdt_add(NULL);
-    
-    // // Ожидание монтирования файловой системы
-    // while (!isFileSystemReady()) {
-    //     vTaskDelay(pdMS_TO_TICKS(100));
-    //     feedWatchdog();
-    // }
-    
-    // // Инициализация аудио
-    // initAudio();
-    
-    // Serial.println("[AUDIO] Задача запущена, ожидание команд");
-    
-    // // Основной цикл
-    // while (true) {
-    //     feedWatchdog();                                 // Сброс watchdog
-    //     audio.loop();                                   // Обслуживание аудио (обязательно!)
-    //     vTaskDelay(pdMS_TO_TICKS(10));                  // Небольшая задержка
-    // }
 }
 
 #endif // ENABLE_AUDIO

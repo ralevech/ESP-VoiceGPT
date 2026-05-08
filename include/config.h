@@ -89,7 +89,7 @@
 #define AUDIO_LRC_PIN             6     // Left/Right Clock (LRCK/WS)
 #define AUDIO_DOUT_PIN            4     // Data Out (DIN)
 
-#define AUDIO_VOLUME              15    // Громкость (0-21, 15 - комфортно)
+#define AUDIO_VOLUME              20    // Громкость (0-21, 15 - комфортно)
 
 // ====================================================================
 // 11. ОТЛОЖЕННЫЕ НАСТРОЙКИ (закомментированы до востребования)
