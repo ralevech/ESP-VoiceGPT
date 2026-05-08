@@ -12,6 +12,7 @@
 // ====================================================================
 
 #include <Arduino.h>
+#include <esp_task_wdt.h>
 #include <WiFi.h>
 #include "config.h"
 #include "common.h"
@@ -35,6 +36,11 @@ static void stopAPmode();
 // ====================================================================
 void taskWiFi(void *pvParameters) {
     (void)pvParameters;
+    // РЕГИСТРАЦИЯ В WATCHDOG
+    // Эта команда добавляет текущую задачу в список наблюдаемых сторожевого таймера.
+    // Без неё Watchdog не будет следить за задачей, и если она зависнет - перезагрузки НЕ БУДЕТ.
+    // Аргумент NULL означает "текущая задача taskWiFi".
+    esp_task_wdt_add(NULL);
     
     // Задержка при старте (дает время инициализации Serial)
     vTaskDelay(pdMS_TO_TICKS(500));

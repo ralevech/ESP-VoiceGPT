@@ -107,7 +107,6 @@ void loop() {
     #if ENABLE_WATCHDOG
         feedWatchdog();
     #endif
-    
-    delay(10000);
+
     vTaskDelete(NULL);
 }

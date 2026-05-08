@@ -7,6 +7,7 @@
 // ====================================================================
 
 #include <Arduino.h>
+#include <esp_task_wdt.h>
 #include "config.h"
 #include "common.h"
 
@@ -20,6 +21,11 @@
 // ====================================================================
 void taskSensor(void *pvParameters) {
     (void)pvParameters;
+    // РЕГИСТРАЦИЯ В WATCHDOG
+    // Эта команда добавляет текущую задачу в список наблюдаемых сторожевого таймера.
+    // Без неё Watchdog не будет следить за задачей, и если она зависнет - перезагрузки НЕ БУДЕТ.
+    // Аргумент NULL означает "текущая задача taskSensor".
+    esp_task_wdt_add(NULL);
     
     Serial.println("[SENSOR] Задача запущена (заглушка для будущих датчиков)");
     
@@ -30,10 +36,12 @@ void taskSensor(void *pvParameters) {
         // float humidity = readHumidity();
         // int distance = readUltrasonic();
         
-        // Если датчиков нет - просто ждём
-        vTaskDelay(pdMS_TO_TICKS(DELAY_SENSOR_CHECK));
-        
         // Сброс watchdog (задача жива)
         feedWatchdog();
+
+        // Ожидание перед следующим опросом
+        vTaskDelay(pdMS_TO_TICKS(DELAY_SENSOR_CHECK));
+        
+        
     }
 }

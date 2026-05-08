@@ -7,6 +7,7 @@
 // ====================================================================
 
 #include <Arduino.h>
+#include <esp_task_wdt.h>
 #include <WiFi.h>
 #include <LittleFS.h>
 #include "config.h"
@@ -147,6 +148,12 @@ static void printSystemStatus() {
 // ====================================================================
 void taskSerial(void *pvParameters) {
     (void)pvParameters;
+    // РЕГИСТРАЦИЯ В WATCHDOG
+    // Эта команда добавляет текущую задачу в список наблюдаемых сторожевого таймера.
+    // Без неё Watchdog не будет следить за задачей, и если она зависнет - перезагрузки НЕ БУДЕТ.
+    // Аргумент NULL означает "текущая задача taskSerial".
+    esp_task_wdt_add(NULL);
+
     vTaskDelay(pdMS_TO_TICKS(3000));
     printHello();
 
