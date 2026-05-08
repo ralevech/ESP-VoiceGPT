@@ -10,6 +10,8 @@
 // ===== ОПРЕДЕЛЕНИЯ ПЕРЕМЕННЫХ (здесь и только здесь!) =====
 bool ledState = false;
 bool apMode = false;
+bool audioReady = false;
+bool serverRunning = false;
 
 // ====================================================================
 // toggleLED() - Переключение встроенного светодиода

@@ -11,6 +11,8 @@
 // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (объявления, не определения) =====
 extern bool ledState;       // состояние светодиода (вкл/выкл)
 extern bool apMode;         // режим точки доступа (true=AP, false=клиент)
+extern bool audioReady;     //
+extern bool serverRunning;
 
 // ===== ОБЩИЕ ФУНКЦИИ (только прототипы) =====
 void toggleLED();           // Переключает светодиод

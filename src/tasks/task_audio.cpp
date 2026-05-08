@@ -9,13 +9,12 @@
 // Автор: ralevech
 // 
 // ПОДКЛЮЧЕНИЕ MAX98357A к ESP32-S3:
-//   MAX98357A -> ESP32-S3
-//   VIN     -> 3.3V
-//   GND     -> GND
-//   DIN     -> GPIO4  (AUDIO_DOUT_PIN)
-//   BCLK    -> GPIO5  (AUDIO_BCLK_PIN)
-//   LRCK    -> GPIO6  (AUDIO_LRC_PIN)
-// ====================================================================
+//   ESP32-S3 -> MAX98357A
+//   3.3V     -> VIN
+//   GND      -> GND
+//   GPIO4    -> DIN   (AUDIO_DOUT_PIN)
+//   GPIO5    -> BCLK  (AUDIO_BCLK_PIN)
+//   GPIO6    -> LRCK  (AUDIO_LRC_PIN)
 
 #include <Arduino.h>
 #include <esp_task_wdt.h>
@@ -50,6 +49,8 @@ static void initAudio() {
     audio.forceMono(true);
     
     Serial.println("[AUDIO] MAX98357A инициализирован");
+
+    audioReady = true;
 }
 
 // --------------------------------------------------------------------
@@ -164,26 +165,51 @@ void audio_eof_stream(const char* info) {
 void taskAudio(void *pvParameters) {
     (void)pvParameters;
     
-    // Регистрация в Watchdog
+    Serial.println("[AUDIO] Задача запущена");  // <-- ЭТО САМОЕ ВАЖНОЕ
+    
     esp_task_wdt_add(NULL);
     
-    // Ожидание монтирования файловой системы
     while (!isFileSystemReady()) {
+        Serial.println("[AUDIO] Жду LittleFS...");
         vTaskDelay(pdMS_TO_TICKS(100));
         feedWatchdog();
     }
     
-    // Инициализация аудио
+    Serial.println("[AUDIO] LittleFS готова");
+    
     initAudio();
     
-    Serial.println("[AUDIO] Задача запущена, ожидание команд");
+    Serial.println("[AUDIO] Готов к работе");
     
-    // Основной цикл
     while (true) {
-        feedWatchdog();                                 // Сброс watchdog
-        audio.loop();                                   // Обслуживание аудио (обязательно!)
-        vTaskDelay(pdMS_TO_TICKS(10));                  // Небольшая задержка
+        feedWatchdog();
+        audio.loop();
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
+
+
+
+
+    // // Регистрация в Watchdog
+    // esp_task_wdt_add(NULL);
+    
+    // // Ожидание монтирования файловой системы
+    // while (!isFileSystemReady()) {
+    //     vTaskDelay(pdMS_TO_TICKS(100));
+    //     feedWatchdog();
+    // }
+    
+    // // Инициализация аудио
+    // initAudio();
+    
+    // Serial.println("[AUDIO] Задача запущена, ожидание команд");
+    
+    // // Основной цикл
+    // while (true) {
+    //     feedWatchdog();                                 // Сброс watchdog
+    //     audio.loop();                                   // Обслуживание аудио (обязательно!)
+    //     vTaskDelay(pdMS_TO_TICKS(10));                  // Небольшая задержка
+    // }
 }
 
 #endif // ENABLE_AUDIO
