@@ -110,6 +110,35 @@
 // #define MQTT_CLIENT_ID           "ESP32_Skeleton"
 
 // Modbus RTU - будет добавлен позже
-// #define ENABLE_MODBUS             1
+// #define ENABLE_MODBUS            1
+
+// ====================================================================
+// НАСТРОЙКИ PID РЕГУЛЯТОРА
+// ====================================================================
+#define ENABLE_PID              0     // 1 = включить задачу PID, 0 = выключить
+
+// Коэффициенты PID
+#define PID_Kp                  5.0   // Пропорциональный коэффициент
+#define PID_Ki                  0.5   // Интегральный коэффициент
+#define PID_Kd                  1.0   // Дифференциальный коэффициент
+
+// Период дискретизации (секунды)
+#define PID_DT                  0.1   // 100 мс
+
+// Лимиты интегральной составляющей (антивиндовап)
+#define PID_INTEGRAL_MIN        -100
+#define PID_INTEGRAL_MAX        100
+
+// Лимиты выходного сигнала
+#define PID_OUTPUT_MIN          -255
+#define PID_OUTPUT_MAX          255
+
+// Целевое значение (уставка)
+#define PID_TARGET              50.0
+
+// Параметры задачи PID
+#define PRIO_PID                2
+#define STACK_PID               4096
+#define CORE_PID                1
 
 #endif // CONFIG_H
