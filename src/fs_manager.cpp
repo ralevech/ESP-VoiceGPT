@@ -12,11 +12,6 @@
 
 // ====================================================================
 // initFileSystem() - Инициализация файловой системы LittleFS
-// 
-// Алгоритм:
-//   1. Монтирование файловой системы
-//   2. При ошибке - вывод сообщения об ошибке
-//   3. При успехе - вывод информации о размере
 // ====================================================================
 
 static bool fileSystemReady = false;
@@ -24,7 +19,6 @@ static bool fileSystemReady = false;
 void initFileSystem() {
     Serial.println("[FS] Монтирование LittleFS...");
     
-    // Монтируем файловую систему (true = форматировать при ошибке)
     if (!LittleFS.begin(true)) {
         fileSystemReady = false;
         Serial.println("[FS] ОШИБКА! Не удалось смонтировать LittleFS");
@@ -33,28 +27,22 @@ void initFileSystem() {
 
     fileSystemReady = true;
 
-    Serial.println("[FS] LittleFS успешно смонтирована");
-    
-    // Получение информации о файловой системе (альтернативный способ)
     size_t totalBytes = LittleFS.totalBytes();
     size_t usedBytes = LittleFS.usedBytes();
     
-    Serial.print("[FS] Общий размер: ");
-    Serial.print(totalBytes / 1024);
-    Serial.println(" KB");
-    Serial.print("[FS] Использовано: ");
-    Serial.print(usedBytes / 1024);
-    Serial.println(" KB");
-    Serial.print("[FS] Свободно: ");
-    Serial.print((totalBytes - usedBytes) / 1024);
-    Serial.println(" KB");
+    Serial.printf(
+        "[FS] LittleFS успешно смонтирована\n"
+        "[FS] Общий размер: %u KB\n"
+        "[FS] Использовано: %u KB\n"
+        "[FS] Свободно: %u KB\n",
+        totalBytes / 1024,
+        usedBytes / 1024,
+        (totalBytes - usedBytes) / 1024
+    );
 }
 
 // ====================================================================
 // checkFileExists() - Проверка существования файла
-// 
-// Параметры: path - путь к файлу
-// Возвращает: true - файл существует, false - нет
 // ====================================================================
 bool checkFileExists(const char* path) {
     return LittleFS.exists(path);
@@ -62,9 +50,6 @@ bool checkFileExists(const char* path) {
 
 // ====================================================================
 // getFileSize() - Получение размера файла
-// 
-// Параметры: path - путь к файлу
-// Возвращает: размер файла в байтах, 0 если файл не найден
 // ====================================================================
 size_t getFileSize(const char* path) {
     File file = LittleFS.open(path, "r");
@@ -78,17 +63,15 @@ size_t getFileSize(const char* path) {
 
 // ====================================================================
 // listDirectory() - Вывод содержимого директории (для отладки)
-// 
-// Параметры: path - путь к директории, depth - глубина рекурсии
 // ====================================================================
 void listDirectory(const char* path, int depth) {
     File root = LittleFS.open(path);
     if (!root) {
-        Serial.println("[FS] Не удалось открыть директорию: " + String(path));
+        Serial.printf("[FS] Не удалось открыть директорию: %s\n", path);
         return;
     }
     if (!root.isDirectory()) {
-        Serial.println("[FS] Не директория: " + String(path));
+        Serial.printf("[FS] Не директория: %s\n", path);
         return;
     }
     
@@ -98,22 +81,19 @@ void listDirectory(const char* path, int depth) {
             Serial.print("  ");
         }
         if (file.isDirectory()) {
-            Serial.print("[DIR] ");
-            Serial.println(file.name());
+            Serial.printf("[DIR] %s\n", file.name());
             listDirectory(file.name(), depth + 1);
         } else {
-            Serial.print("[FILE] ");
-            Serial.print(file.name());
-            Serial.print(" (");
-            Serial.print(file.size());
-            Serial.println(" bytes)");
+            Serial.printf("[FILE] %s (%u bytes)\n", file.name(), file.size());
         }
         file = root.openNextFile();
     }
     file.close();
 }
 
-// Возвращает состояние монтирования файловой системы
+// ====================================================================
+// isFileSystemReady() - Возвращает состояние монтирования FS
+// ====================================================================
 bool isFileSystemReady() {
     return fileSystemReady;
 }
