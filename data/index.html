@@ -3,6 +3,11 @@
   index.html - Главная страница веб-интерфейса ESP32
   ====================================================================
   Описание: Структура страницы управления ESP32 через веб-интерфейс
+           Поддерживает:
+           - Управление LED (Вкл/Выкл)
+           - Получение статуса системы
+           - Управление аудио (громкость, воспроизведение, стоп)
+           - WebSocket для мгновенного обмена данными
   Автор: ralevech
   ====================================================================
 -->
@@ -19,18 +24,32 @@
 </head>
 <body>
     <div class="container">
-        <h1>Привет от ESP32!</h1>
+        <h1>Управление ESP32</h1>
         
-        <p>
-            Добро пожаловать на сервер ESP32. 
-            Здесь будет отображаться информация с датчиков и органы управления.
-        </p>
-        
+        <!-- ===== УПРАВЛЕНИЕ LED ===== -->
         <div class="button-group">
             <button class="btn-led" id="ledButton">Включить LED</button>
             <button class="btn-status" id="statusButton">Статус</button>
         </div>
         
+        <!-- ===== УПРАВЛЕНИЕ АУДИО ===== -->
+        <div class="audio-controls">
+            <h3>Аудио</h3>
+            
+            <!-- Слайдер громкости (0-21) -->
+            <input type="range" id="volumeSlider" min="0" max="21" value="15">
+            <span id="volumeValue">15</span>
+            
+            <div>
+                <button id="playBtn" class="btn-play">▶ Воспроизвести</button>
+                <button id="stopBtn" class="btn-stop">⏹ Стоп</button>
+            </div>
+            
+            <!-- Статус аудио (выводится через WebSocket) -->
+            <div id="audioStatus"></div>
+        </div>
+        
+        <!-- ===== ИНДИКАЦИЯ СОСТОЯНИЯ ===== -->
         <div class="led-state" id="ledState">
             Состояние LED: неизвестно
         </div>

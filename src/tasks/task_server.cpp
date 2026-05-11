@@ -1,8 +1,7 @@
 // ====================================================================
 // task_server.cpp - Задача веб-сервера
 // 
-// Описание: Асинхронный веб-сервер для обслуживания HTML страниц
-//           и обработки API запросов. Работает как в STA режиме, так и в AP.
+// Описание: Асинхронный веб-сервер + WebSocket для управления в реальном времени
 // Автор: ralevech
 // ====================================================================
 
@@ -17,34 +16,64 @@
 
 #if ENABLE_WEBSERVER
 
-// Глобальный объект сервера
 static AsyncWebServer* server = nullptr;
 
-// Внешние функции (определены в task_wifi.cpp)
+// WSS21: Объект WebSocket
+static AsyncWebSocket ws("/ws");
+
 extern bool isWiFiConnected();
 extern bool isAPMode();
 
-// --------------------------------------------------------------------
-// Обработчики API запросов
-// --------------------------------------------------------------------
+// WSS21: Обработчик входящих WebSocket сообщений
+static void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, 
+                              AwsEventType type, void *arg, uint8_t *data, size_t len) {
+    if (type == WS_EVT_DATA) {
+        AwsFrameInfo *info = (AwsFrameInfo*)arg;
+        if (info->final && info->index == 0 && info->len == len && len > 0) {
+            data[len] = '\0';
+            String message = String((char*)data);
+            
+            // Команда: громкость
+            if (message.startsWith("VOL:")) {
+                int vol = message.substring(4).toInt();
+                setAudioVolume(vol);
+                // Отправляем подтверждение всем клиентам
+                ws.printfAll("VOL:%d", vol);
+            }
+            // Команда: воспроизвести MP3
+            else if (message.startsWith("PLAY:")) {
+                String filename = message.substring(5);
+                playMP3(filename);
+                ws.printfAll("STATUS:Воспроизводится %s", filename.c_str());
+            }
+            // Команда: стоп
+            else if (message == "STOP") {
+                stopAudio();
+                ws.printfAll("STATUS:Остановлено");
+            }
+            // Команда: получить статус
+            else if (message == "STATUS") {
+                client->text("STATUS:Аудио готово");
+            }
+        }
+    }
+}
 
-// Обработчик: включение светодиода
 static void handleLedOn(AsyncWebServerRequest *request) {
     ledState = true;
     LOG_DEBUG("LED ON запрос получен");
     request->send(200, "text/plain; charset=utf-8", "LED включен");
+    ws.printfAll("LED:ON");   // WSS21: Уведомляем всех
 }
 
-// Обработчик: выключение светодиода
 static void handleLedOff(AsyncWebServerRequest *request) {
     ledState = false;
     LOG_DEBUG("LED OFF запрос получен");
     request->send(200, "text/plain; charset=utf-8", "LED выключен");
+    ws.printfAll("LED:OFF");   // WSS21: Уведомляем всех
 }
 
-// Обработчик: получение статуса
 static void handleStatus(AsyncWebServerRequest *request) {
-    LOG_DEBUG("STATUS запрос получен");
     String status = "{"
         "\"status\": \"ok\","
         "\"uptime\": " + String(millis() / 1000) + ","
@@ -56,9 +85,6 @@ static void handleStatus(AsyncWebServerRequest *request) {
     request->send(200, "application/json; charset=utf-8", status);
 }
 
-// --------------------------------------------------------------------
-// Настройка маршрутов (роутов) веб-сервера
-// --------------------------------------------------------------------
 static void setupRoutes(AsyncWebServer* srv) {
     // API ENDPOINTS (JSON)
     srv->on("/api/led/on", HTTP_GET, handleLedOn);
@@ -71,6 +97,10 @@ static void setupRoutes(AsyncWebServer* srv) {
     });
     
     srv->serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+    
+    // WSS21: Обработка WebSocket
+    ws.onEvent(onWebSocketEvent);
+    srv->addHandler(&ws);
     
     // ОБРАБОТКА ОШИБОК 404
     srv->onNotFound([](AsyncWebServerRequest *request) {
@@ -85,58 +115,51 @@ static void setupRoutes(AsyncWebServer* srv) {
     });
 }
 
-// --------------------------------------------------------------------
-// Запуск веб-сервера
-// --------------------------------------------------------------------
 static void startServer() {
     if (server != nullptr) {
-        // Если сервер уже запущен, останавливаем его
         server->end();
         delete server;
         server = nullptr;
         vTaskDelay(pdMS_TO_TICKS(500));
     }
     
-    // Создаём новый сервер на порту 80
     server = new AsyncWebServer(80);
-    
-    // Настраиваем маршруты
     setupRoutes(server);
-    
-    // Запускаем сервер
     server->begin();
     serverRunning = true;
     LOG_INFO("Веб-сервер запущен на порту 80");
+    
+    // WSS21: Очищаем WebSocket подключения
+    ws.cleanupClients();
 }
 
-// ====================================================================
-// taskWebServer() - Основная задача веб-сервера
-// ====================================================================
+// WSS21: Функция для вещания статуса аудио через WebSocket
+void wsAudioStatus(const char* status) {
+    ws.printfAll("AUDIO:%s", status);
+}
+
 void taskWebServer(void *pvParameters) {
     (void)pvParameters;
     
-    // Регистрация в Watchdog
     esp_task_wdt_add(NULL);
     
-    // Ждём монтирование файловой системы
     while (!isFileSystemReady()) {
         vTaskDelay(pdMS_TO_TICKS(100));
         feedWatchdog();
     }
     
-    // Ждём готовности сети (STA или AP)
     while (!isWiFiConnected() && !isAPMode()) {
         vTaskDelay(pdMS_TO_TICKS(1000));
         feedWatchdog();
     }
     
-    // Запуск сервера
     startServer();
     
-    // Основной цикл
+    // WSS21: Периодическая очистка старых WebSocket клиентов
     while (true) {
         feedWatchdog();
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        ws.cleanupClients();
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
