@@ -49,9 +49,7 @@ static void initAudio() {
     // Принудительный моно режим (для одного динамика)
     audio.forceMono(true);
     
-    // Сигнал об успешной инициализации
-    Serial.println("[AUDIO] MAX98357A инициализирован");
-    
+    LOG_INFO("MAX98357A инициализирован");
     audioReady = true;
 }
 
@@ -63,7 +61,7 @@ bool playMP3(String filename) {
     
     // Проверка существования файла
     if (!LittleFS.exists(fullPath)) {
-        Serial.printf("[AUDIO] Файл не найден: %s\n", fullPath.c_str());
+        LOG_ERROR("MP3 файл не найден: " + fullPath);
         return false;
     }
     
@@ -74,7 +72,7 @@ bool playMP3(String filename) {
     }
     
     // Запуск воспроизведения
-    Serial.printf("[AUDIO] Воспроизведение MP3: %s\n", fullPath.c_str());
+    LOG_INFO("Воспроизведение MP3: " + fullPath);
     audio.connecttoFS(LittleFS, fullPath.c_str());
     isPlaying = true;
     currentFile = fullPath;
@@ -93,7 +91,7 @@ void speak(String text) {
     }
     
     // Запуск синтеза речи (русский язык)
-    Serial.printf("[AUDIO] Речь: %s\n", text.c_str());
+    LOG_INFO("Синтез речи: " + text);
     audio.connecttospeech(text.c_str(), "ru");          // "ru" - русский язык
     isPlaying = true;
     currentFile = "speech";
@@ -110,7 +108,7 @@ void playRadio(String url) {
     }
     
     // Запуск потока
-    Serial.printf("[AUDIO] Радио: %s\n", url.c_str());
+    LOG_INFO("Интернет-радио: " + url);
     audio.connecttohost(url.c_str());
     isPlaying = true;
     currentFile = "radio";
@@ -124,7 +122,7 @@ void stopAudio() {
         audio.stopSong();
         isPlaying = false;
         currentFile = "";
-        Serial.println("[AUDIO] Воспроизведение остановлено");
+        LOG_DEBUG("Воспроизведение остановлено");
     }
 }
 
@@ -137,7 +135,7 @@ void setAudioVolume(int volume) {
     if (volume > 21) volume = 21;
     
     audio.setVolume(volume);
-    Serial.printf("[AUDIO] Громкость: %d\n", volume);
+    LOG_INFO("Громкость: " + String(volume));
 }
 
 // ====================================================================
@@ -146,17 +144,17 @@ void setAudioVolume(int volume) {
 
 // Информационные сообщения
 void audio_info(const char* info) {
-    Serial.printf("[AUDIO] info: %s\n", info);
+    LOG_DEBUG("Audio info: " + String(info));
 }
 
 // Метаданные ID3 (название трека, исполнитель и т.д.)
 void audio_id3data(const char* info) {
-    Serial.printf("[AUDIO] ID3: %s\n", info);
+    LOG_DEBUG("ID3: " + String(info));
 }
 
 // Событие окончания воспроизведения
 void audio_eof_stream(const char* info) {
-    Serial.printf("[AUDIO] Воспроизведение завершено: %s\n", info);
+    LOG_DEBUG("Воспроизведение завершено: " + String(info));
     isPlaying = false;
     currentFile = "";
 }
@@ -167,31 +165,32 @@ void audio_eof_stream(const char* info) {
 void taskAudio(void *pvParameters) {
     (void)pvParameters;
     
-    Serial.println("[AUDIO] Задача запущена");
+    LOG_DEBUG("Аудио задача запущена");
     
+    // Регистрация в Watchdog
     esp_task_wdt_add(NULL);
     
+    // Ожидание монтирования файловой системы
     while (!isFileSystemReady()) {
-        Serial.println("[AUDIO] Жду LittleFS...");
         vTaskDelay(pdMS_TO_TICKS(100));
         feedWatchdog();
     }
     
-    Serial.println("[AUDIO] LittleFS готова");
-    
+    // Инициализация аудио
     initAudio();
     
-    // Тестовый вызов MP3
+    // ТЕСТОВОЕ ВОСПРОИЗВЕДЕНИЕ (раскомментируй нужное)
     vTaskDelay(pdMS_TO_TICKS(2000));
-    Serial.println("[TEST] Воспроизведение MP3");
     playMP3("ksyusha.mp3");
+    // speak("Привет, мир!");
     
-    Serial.println("[AUDIO] Готов к работе");
+    LOG_DEBUG("Аудио задача готова к работе");
     
+    // Основной цикл задачи
     while (true) {
-        feedWatchdog();
-        audio.loop();
-        vTaskDelay(pdMS_TO_TICKS(10));
+        feedWatchdog();                                 // Сброс watchdog
+        audio.loop();                                   // Обслуживание аудио (обязательно!)
+        vTaskDelay(pdMS_TO_TICKS(10));                  // Задержка для стабильности
     }
 }
 

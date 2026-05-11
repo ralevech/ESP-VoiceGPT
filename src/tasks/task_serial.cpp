@@ -13,13 +13,10 @@
 #include "config.h"
 #include "common.h"
 
-// Внешние флаги из других задач
-extern bool serverRunning;   // из task_server.cpp
-
 // --------------------------------------------------------------------
 // Вывод приветствия
 // --------------------------------------------------------------------
-static void printHello(){
+static void printHello() {
     Serial.printf(
         "\n"
         "╔════════════════════════════════════════╗\n"
@@ -40,40 +37,41 @@ static void printWiFiStatus() {
     
     wl_status_t currentStatus = WiFi.status();
     
+    // Обработка потери соединения
     if (wasConnected && currentStatus != WL_CONNECTED) {
-        Serial.println("[WiFi] RECONNECTING...");
+        LOG_WARN("WiFi: RECONNECTING...");
         wasConnected = false;
     }
     
+    // Обработка нового статуса
     switch (currentStatus) {
         case WL_CONNECTED: {
             int rssi = WiFi.RSSI();
             Serial.printf(
-                "\n"
-                "[WiFi] Status: CONNECTED\n"
+                "\n[WiFi] CONNECTED\n"
                 "[WiFi] IP:     http://%s\n"
                 "[WiFi] MAC:    %s\n"
                 "[WiFi] Signal: %s\n"
                 "[WiFi] RSSI:   %d dBm\n\n",
                 WiFi.localIP().toString().c_str(),
                 WiFi.macAddress().c_str(),
-                (rssi > -50) ? "Отличный" : (rssi > -70) ? "Нормальный" : "Плохой, нужно что-то делать!",
+                (rssi > -50) ? "Отличный" : (rssi > -70) ? "Нормальный" : "Плохой",
                 rssi
             );
             wasConnected = true;
             break;
         }
         case WL_NO_SSID_AVAIL:
-            Serial.printf("[WiFi] SSID NOT FOUND: %s\n", WIFI_SSID);
+            LOG_ERROR("WiFi: SSID NOT FOUND: " + String(WIFI_SSID));
             break;
         case WL_CONNECT_FAILED:
-            Serial.println("[WiFi] CONNECTION FAILED (wrong password?)");
+            LOG_ERROR("WiFi: CONNECTION FAILED (wrong password?)");
             break;
         case WL_CONNECTION_LOST:
-            Serial.println("[WiFi] CONNECTION LOST");
+            LOG_WARN("WiFi: CONNECTION LOST");
             break;
         case WL_DISCONNECTED:
-            Serial.println("[WiFi] DISCONNECTED");
+            LOG_WARN("WiFi: DISCONNECTED");
             break;
     }
     
@@ -85,9 +83,9 @@ static void printWiFiStatus() {
 // --------------------------------------------------------------------
 static void printServerStatus() {
     if (serverRunning) {
-        Serial.printf("[WEB] Сервер запущен: http://%s\n", WiFi.localIP().toString().c_str());
+        LOG_INFO("Веб-сервер запущен: http://" + WiFi.localIP().toString());
     } else {
-        Serial.println("[WEB] Сервер не запущен");
+        LOG_WARN("Веб-сервер не запущен");
     }
 }
 
@@ -96,12 +94,10 @@ static void printServerStatus() {
 // --------------------------------------------------------------------
 static void printFileSystemStatus() {
     if (isFileSystemReady()) {
-        Serial.printf("[FS] LittleFS готово. Всего: %u KB, свободно: %u KB\n\n",
-            LittleFS.totalBytes() / 1024,
-            (LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024
-        );
+        LOG_INFO("LittleFS готово. Всего: " + String(LittleFS.totalBytes() / 1024) + 
+                 " KB, свободно: " + String((LittleFS.totalBytes() - LittleFS.usedBytes()) / 1024) + " KB");
     } else {
-        Serial.println("[FS] LittleFS НЕ ДОСТУПНА");
+        LOG_ERROR("LittleFS НЕ ДОСТУПНА");
     }
 }
 
@@ -109,8 +105,7 @@ static void printFileSystemStatus() {
 // Вывод статуса LED
 // --------------------------------------------------------------------
 static void printLedStatus() {
-    // Раскомментируй при необходимости
-    // Serial.printf("[LED] Состояние: %s\n", ledState ? "ON" : "OFF");
+    LOG_DEBUG("LED состояние: " + String(ledState ? "ON" : "OFF"));
 }
 
 // --------------------------------------------------------------------
@@ -137,7 +132,7 @@ static void printSystemStatus() {
 // Вывод статуса аудио (MAX98357A)
 // --------------------------------------------------------------------
 static void printAudioStatus() {
-    Serial.printf("[AUDIO] Статус: %s\n", audioReady ? "Инициализирован" : "Ошибка/Не готов");
+    LOG_INFO("Аудио статус: " + String(audioReady ? "Инициализирован" : "Ошибка/Не готов"));
 }
 
 // ====================================================================
@@ -146,18 +141,26 @@ static void printAudioStatus() {
 void taskSerial(void *pvParameters) {
     (void)pvParameters;
     
+    // Регистрация в Watchdog
     esp_task_wdt_add(NULL);
-
+    
+    // Вывод приветствия
+    printHello();
+    
+    // Основной цикл вывода статуса
     while (true) {
-        printHello();
         printSystemStatus();
         printWiFiStatus();
         printServerStatus();
         printFileSystemStatus();
         printLedStatus();
         printAudioStatus();
-    
+        Serial.println();
+        
+        // Сброс watchdog
         feedWatchdog();
+        
+        // Задержка до следующего вывода
         vTaskDelay(pdMS_TO_TICKS(DELAY_SERIAL_PRINT));
     }
 }

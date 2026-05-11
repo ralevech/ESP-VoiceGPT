@@ -7,23 +7,17 @@
 #include "config.h"
 #include <esp_task_wdt.h>
 
-// ===== ОПРЕДЕЛЕНИЯ ПЕРЕМЕННЫХ (здесь и только здесь!) =====
+// ===== ОПРЕДЕЛЕНИЯ ПЕРЕМЕННЫХ =====
 bool ledState = false;
 bool apMode = false;
-bool audioReady = false;
 bool serverRunning = false;
+bool audioReady = false;
 
-// ====================================================================
-// toggleLED() - Переключение встроенного светодиода
-// ====================================================================
 void toggleLED() {
     ledState = !ledState;
     digitalWrite(LED_PIN, ledState ? HIGH : LOW);
 }
 
-// ====================================================================
-// feedWatchdog() - Сброс сторожевого таймера
-// ====================================================================
 void feedWatchdog() {
 #if ENABLE_WATCHDOG
     esp_task_wdt_reset();
