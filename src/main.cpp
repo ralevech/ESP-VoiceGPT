@@ -10,6 +10,7 @@
 #include <esp_task_wdt.h>
 #include "config.h"
 #include "common.h"
+#include "globals.h"
 #include "tasks.h"
 
 void setup() {

@@ -1,23 +1,25 @@
 // ====================================================================
-// common.cpp - Реализация общих функций
+// common.cpp - Реализация системных функций
 // Автор: ralevech
 // ====================================================================
 
-#include "common.h"
-#include "config.h"
+#include <Arduino.h>
 #include <esp_task_wdt.h>
+#include "common.h"
+#include "globals.h"
+#include "config.h"
 
-// ===== ОПРЕДЕЛЕНИЯ ПЕРЕМЕННЫХ =====
-bool ledState = false;
-bool apMode = false;
-bool serverRunning = false;
-bool audioReady = false;
-
+// ====================================================================
+// toggleLED() - Переключение встроенного светодиода
+// ====================================================================
 void toggleLED() {
     ledState = !ledState;
     digitalWrite(LED_PIN, ledState ? HIGH : LOW);
 }
 
+// ====================================================================
+// feedWatchdog() - Сброс сторожевого таймера
+// ====================================================================
 void feedWatchdog() {
 #if ENABLE_WATCHDOG
     esp_task_wdt_reset();
