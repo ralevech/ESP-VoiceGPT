@@ -5,6 +5,7 @@
   Описание: 
     - Управление LED (HTTP API)
     - Получение статуса (HTTP API + WebSocket)
+    - Отображение температуры с датчика DS18B20
     - Управление аудио через WebSocket (громкость, воспроизведение, стоп)
     - WebSocket для мгновенного обмена данными
   Автор: ralevech
@@ -27,6 +28,7 @@ const volumeValue = document.getElementById('volumeValue');
 const playBtn = document.getElementById('playBtn');
 const stopBtn = document.getElementById('stopBtn');
 const audioStatus = document.getElementById('audioStatus');
+const temperatureDiv = document.getElementById('temperature');
 
 // ===== WEBSOCKET ФУНКЦИИ =====
 
@@ -68,6 +70,11 @@ function connectWebSocket() {
             const status = message.substring(7);
             setStatusSuccess(status);
         }
+        // Команда: температура
+        else if (message.startsWith('TEMP:')) {
+            const temp = message.substring(5);
+            updateTemperature(temp);
+        }
     };
     
     socket.onerror = function(error) {
@@ -89,6 +96,14 @@ function sendCommand(command) {
     } else {
         console.warn('WebSocket не подключен');
         setStatusError('Нет соединения');
+    }
+}
+
+// ===== УПРАВЛЕНИЕ ТЕМПЕРАТУРОЙ =====
+
+function updateTemperature(temp) {
+    if (temperatureDiv) {
+        temperatureDiv.innerHTML = `Температура: ${temp} °C`;
     }
 }
 
@@ -159,12 +174,15 @@ async function getStatus() {
         
         try {
             const json = JSON.parse(data);
-            if (json.led_state !== undefined) {
-                ledState = json.led_state;
+            if (json.led !== undefined) {
+                ledState = json.led;
                 updateLedButtonStyle();
                 updateLedStateDisplay();
             }
-            setStatusSuccess(`Статус OK: uptime=${json.uptime}с`);
+            if (json.temp !== undefined) {
+                updateTemperature(json.temp);
+            }
+            setStatusSuccess(`Статус OK | WiFi: ${json.wifi ? 'Да' : 'Нет'} | Темп: ${json.temp}°C`);
         } catch (e) {
             setStatusSuccess(`Ответ: ${data}`);
         }

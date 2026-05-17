@@ -59,10 +59,12 @@ void handleLedOff(AsyncWebServerRequest *request) {
 // --------------------------------------------------------------------
 // handleStatus() - JSON статус системы
 // --------------------------------------------------------------------
+
 void handleStatus(AsyncWebServerRequest *request) {
     String json = "{";
     json += "\"led\":" + String(ledState ? "true" : "false") + ",";
     json += "\"wifi\":" + String(isWiFiConnected() ? "true" : "false") + ",";
+    json += "\"temp\":" + String(lastTemperature) + ","; // температура
     json += "\"heap\":" + String(ESP.getFreeHeap());
     json += "}";
     request->send(200, "application/json", json);

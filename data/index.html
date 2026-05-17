@@ -6,6 +6,7 @@
            Поддерживает:
            - Управление LED (Вкл/Выкл)
            - Получение статуса системы
+           - Отображение температуры с датчика DS18B20
            - Управление аудио (громкость, воспроизведение, стоп)
            - WebSocket для мгновенного обмена данными
   Автор: ralevech
@@ -30,6 +31,12 @@
         <div class="button-group">
             <button class="btn-led" id="ledButton">Включить LED</button>
             <button class="btn-status" id="statusButton">Статус</button>
+        </div>
+        
+        <!-- ===== ДАТЧИКИ ===== -->
+        <div class="sensor-data">
+            <h3>Датчики</h3>
+            <div id="temperature">Температура: -- °C</div>
         </div>
         
         <!-- ===== УПРАВЛЕНИЕ АУДИО ===== -->
